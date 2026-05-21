@@ -1,0 +1,290 @@
+// This is your Prisma schema file.
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USERS ────────────────────────────────────────────────────
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String?
+  name          String
+  avatarUrl     String?
+  city          String?
+  state         String?
+  role          UserRole @default(TENANT)
+  emailVerified Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  subscription  Subscription?
+  leases        Lease[]
+  sessions      Session[]
+  notifications Notification[]
+  apiKeys       ApiKey[]
+  teamMembers   TeamMember[]
+
+  // OAuth
+  oauthAccounts OAuthAccount[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  TENANT
+  AGENT
+  ADMIN
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  refreshToken String   @unique
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model OAuthAccount {
+  id         String @id @default(cuid())
+  userId     String
+  provider   String // "google" | "github"
+  providerId String
+  email      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@map("oauth_accounts")
+}
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  type      String   // "email_verify" | "password_reset"
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("verification_tokens")
+}
+
+// ─── SUBSCRIPTIONS ────────────────────────────────────────────
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  razorpayCustomerId     String?
+  razorpaySubscriptionId String?            @unique
+  razorpayPlanId         String?
+  razorpayPaymentId      String?
+  plan                 Plan               @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  analysesUsed         Int                @default(0)
+  analysesLimit        Int                @default(2)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+enum Plan {
+  FREE
+  PRO
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+  TRIALING
+}
+
+// ─── LEASES ───────────────────────────────────────────────────
+model Lease {
+  id           String      @id @default(cuid())
+  userId       String
+  name         String
+  address      String?
+  city         String?
+  state        String?
+  rent         String?
+  deposit      String?
+  duration     String?
+  pages        Int?
+  fileKey      String?     // S3/R2 key
+  fileUrl      String?     // public URL
+  fileName     String?
+  fileSize     Int?
+  status       LeaseStatus @default(PENDING)
+  riskScore    Int?        // 0-100
+  riskLevel    RiskLevel?
+  analysisAt   DateTime?
+  extractedText String?   @db.Text
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issues LeaseIssue[]
+  chats  ChatMessage[]
+  reports Report[]
+
+  @@map("leases")
+}
+
+enum LeaseStatus {
+  PENDING
+  PROCESSING
+  ANALYZED
+  FAILED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// ─── LEASE ISSUES ─────────────────────────────────────────────
+model LeaseIssue {
+  id          String    @id @default(cuid())
+  leaseId     String
+  severity    Severity
+  clause      String
+  explanation String    @db.Text
+  quote       String?   @db.Text
+  action      String?
+  legalRef    String?   // e.g. "Karnataka RCA §20"
+  pageNumber  Int?
+  position    Int       @default(0) // sort order
+  createdAt   DateTime  @default(now())
+
+  lease Lease @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+
+  @@map("lease_issues")
+}
+
+enum Severity {
+  CRITICAL
+  WARNING
+  GOOD
+}
+
+// ─── CHAT MESSAGES ────────────────────────────────────────────
+model ChatMessage {
+  id        String      @id @default(cuid())
+  leaseId   String
+  role      MessageRole
+  content   String      @db.Text
+  createdAt DateTime    @default(now())
+
+  lease Lease @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+// ─── REPORTS ──────────────────────────────────────────────────
+model Report {
+  id        String     @id @default(cuid())
+  leaseId   String
+  type      ReportType @default(PDF)
+  fileKey   String?
+  fileUrl   String?
+  createdAt DateTime   @default(now())
+
+  lease Lease @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+enum ReportType {
+  PDF
+  EMAIL
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  icon      String?
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ─── API KEYS (Business plan) ─────────────────────────────────
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  keyHash   String   @unique
+  lastUsed  DateTime?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+// ─── TEAMS (Business plan) ────────────────────────────────────
+model Team {
+  id        String       @id @default(cuid())
+  name      String
+  ownerId   String
+  createdAt DateTime     @default(now())
+  members   TeamMember[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      TeamRole @default(MEMBER)
+  createdAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+}

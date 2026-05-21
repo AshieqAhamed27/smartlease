@@ -4,7 +4,7 @@
 - **Frontend** → Vercel (free tier works)
 - **Backend API** → Render (Starter plan ~$7/mo)
 - **Background Worker** → Render Worker (~$7/mo)
-- **PostgreSQL** → Render PostgreSQL (~$7/mo) or Supabase (free tier)
+- **MongoDB** → MongoDB Atlas
 - **Redis** → Render Redis (~$10/mo) or Upstash (free tier)
 - **File Storage** → Cloudflare R2 (free 10GB/mo) or AWS S3
 - **Email** → Resend (free 3,000/mo)
@@ -63,9 +63,9 @@ git push -u origin main
 ## Step 3 — Render (Backend)
 
 ### 3a. Database
-1. https://dashboard.render.com → New → PostgreSQL
-2. Name: `smartlease-db`, Region: Singapore, Plan: Starter
-3. Copy the **External Database URL** — save as `DATABASE_URL`
+1. Use your MongoDB Atlas cluster.
+2. Create or reuse a database named `smartlease`.
+3. Save the connection string as `MONGO_URI`.
 
 ### 3b. Redis
 1. New → Redis
@@ -93,7 +93,7 @@ git push -u origin main
 ### 3d. Run Database Migrations
 After deploy, go to Render Shell:
 ```bash
-npx prisma migrate deploy
+npx prisma db push
 npx prisma db seed
 ```
 
@@ -164,7 +164,7 @@ curl https://smartlease-api.onrender.com/health
 ### Backend (Render)
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | ✅ |
+| `MONGO_URI` | MongoDB Atlas connection string | ✅ |
 | `REDIS_URL` | Redis connection string | ✅ |
 | `JWT_SECRET` | 32+ char random string | ✅ |
 | `JWT_REFRESH_SECRET` | 32+ char random string | ✅ |
@@ -199,7 +199,7 @@ curl https://smartlease-api.onrender.com/health
 | Vercel | Hobby (free) | $0 |
 | Render Web | Starter | $7 |
 | Render Worker | Starter | $7 |
-| Render PostgreSQL | Starter | $7 |
+| MongoDB Atlas | Free/shared cluster or paid tier | $0+ |
 | Render Redis | Starter | $10 |
 | Cloudflare R2 | Free (10GB) | $0 |
 | Resend | Free (3k/mo) | $0 |
@@ -212,7 +212,7 @@ Break-even: **7 Pro subscribers** (7 × ₹499 = ₹3,493 ≈ $42/mo)
 ## Scaling Up
 
 When you hit 100+ users:
-- Move PostgreSQL to Supabase or PlanetScale
+- Move MongoDB Atlas to a dedicated cluster
 - Move Redis to Upstash (consumption-based)
 - Add CDN for R2 assets
 - Enable Render autoscaling

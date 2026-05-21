@@ -13,10 +13,8 @@ services:
         value: production
       - key: PORT
         value: 4000
-      - key: DATABASE_URL
-        fromDatabase:
-          name: smartlease-db
-          property: connectionString
+      - key: MONGO_URI
+        sync: false
       - key: REDIS_URL
         fromService:
           name: smartlease-redis
@@ -78,10 +76,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DATABASE_URL
-        fromDatabase:
-          name: smartlease-db
-          property: connectionString
+      - key: MONGO_URI
+        sync: false
       - key: REDIS_URL
         fromService:
           name: smartlease-redis
@@ -98,13 +94,8 @@ services:
       - key: STORAGE_SECRET_KEY
         sync: false
 
-databases:
-  - name: smartlease-db
+  - type: redis
+    name: smartlease-redis
     plan: starter
     region: singapore
-    databaseName: smartlease
-    user: smartlease
-
-  - name: smartlease-redis
-    plan: starter
-    region: singapore
+    ipAllowList: []

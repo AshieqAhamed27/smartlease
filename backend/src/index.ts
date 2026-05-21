@@ -72,7 +72,7 @@ app.use('/api/', limiter)
 // ─── HEALTH CHECK ────────────────────────────────────────────
 app.get('/health', async (req, res) => {
   try {
-    await prisma.$queryRaw`SELECT 1`
+    await prisma.$runCommandRaw({ ping: 1 })
     await redis.ping()
     res.json({
       status: 'ok',

@@ -1,23 +1,6 @@
 version: '3.9'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: smartlease
-      POSTGRES_PASSWORD: smartlease_dev
-      POSTGRES_DB: smartlease
-    ports:
-      - '5432:5432'
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U smartlease']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -40,7 +23,6 @@ services:
       - '4000:4000'
     environment:
       NODE_ENV: development
-      DATABASE_URL: postgresql://smartlease:smartlease_dev@postgres:5432/smartlease
       REDIS_URL: redis://redis:6379
     env_file:
       - ./backend/.env
@@ -48,8 +30,6 @@ services:
       - ./backend:/app
       - /app/node_modules
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     command: npm run dev
@@ -69,5 +49,4 @@ services:
     command: npm run dev
 
 volumes:
-  postgres_data:
   redis_data:

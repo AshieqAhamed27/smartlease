@@ -35,7 +35,7 @@ smartlease/
 
 ### Backend
 - Node.js + Express + TypeScript
-- Prisma ORM + PostgreSQL
+- Prisma ORM + MongoDB
 - Redis (sessions, rate limiting, queue)
 - BullMQ (background jobs — PDF processing)
 - JWT + httpOnly cookies (auth)
@@ -49,7 +49,7 @@ smartlease/
 - Docker + Docker Compose (local dev)
 - Railway / Render (backend deployment)
 - Vercel (frontend deployment)
-- PostgreSQL (Supabase or Railway)
+- MongoDB Atlas
 - Redis (Upstash)
 - Cloudflare R2 (file storage)
 
@@ -71,7 +71,7 @@ cp .env.example .env
 docker-compose up
 
 # 4. Run migrations
-cd backend && npx prisma migrate dev
+cd backend && npx prisma db push
 
 # 5. Start dev servers
 npm run dev

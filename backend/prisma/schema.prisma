@@ -6,13 +6,13 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "mongodb"
+  url      = env("MONGO_URI")
 }
 
 // ─── USERS ────────────────────────────────────────────────────
 model User {
-  id            String   @id @default(cuid())
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
   email         String   @unique
   passwordHash  String?
   name          String
@@ -46,34 +46,34 @@ enum UserRole {
 
 // ─── AUTH ─────────────────────────────────────────────────────
 model Session {
-  id           String   @id @default(cuid())
-  userId       String
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
   refreshToken String   @unique
   userAgent    String?
   ipAddress    String?
   expiresAt    DateTime
   createdAt    DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
 
   @@map("sessions")
 }
 
 model OAuthAccount {
-  id         String @id @default(cuid())
-  userId     String
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String @db.ObjectId
   provider   String // "google" | "github"
   providerId String
   email      String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
 
   @@unique([provider, providerId])
   @@map("oauth_accounts")
 }
 
 model VerificationToken {
-  id        String   @id @default(cuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   email     String
   token     String   @unique
   type      String   // "email_verify" | "password_reset"
@@ -85,8 +85,8 @@ model VerificationToken {
 
 // ─── SUBSCRIPTIONS ────────────────────────────────────────────
 model Subscription {
-  id                   String             @id @default(cuid())
-  userId               String             @unique
+  id                   String             @id @default(auto()) @map("_id") @db.ObjectId
+  userId               String             @unique @db.ObjectId
   razorpayCustomerId     String?
   razorpaySubscriptionId String?            @unique
   razorpayPlanId         String?
@@ -101,7 +101,7 @@ model Subscription {
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
 
   @@map("subscriptions")
 }
@@ -122,8 +122,8 @@ enum SubscriptionStatus {
 
 // ─── LEASES ───────────────────────────────────────────────────
 model Lease {
-  id           String      @id @default(cuid())
-  userId       String
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String      @db.ObjectId
   name         String
   address      String?
   city         String?
@@ -140,11 +140,11 @@ model Lease {
   riskScore    Int?        // 0-100
   riskLevel    RiskLevel?
   analysisAt   DateTime?
-  extractedText String?   @db.Text
+  extractedText String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id])
   issues LeaseIssue[]
   chats  ChatMessage[]
   reports Report[]
@@ -167,19 +167,19 @@ enum RiskLevel {
 
 // ─── LEASE ISSUES ─────────────────────────────────────────────
 model LeaseIssue {
-  id          String    @id @default(cuid())
-  leaseId     String
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  leaseId     String    @db.ObjectId
   severity    Severity
   clause      String
-  explanation String    @db.Text
-  quote       String?   @db.Text
+  explanation String
+  quote       String?
   action      String?
   legalRef    String?   // e.g. "Karnataka RCA §20"
   pageNumber  Int?
   position    Int       @default(0) // sort order
   createdAt   DateTime  @default(now())
 
-  lease Lease @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  lease Lease @relation(fields: [leaseId], references: [id])
 
   @@map("lease_issues")
 }
@@ -192,13 +192,13 @@ enum Severity {
 
 // ─── CHAT MESSAGES ────────────────────────────────────────────
 model ChatMessage {
-  id        String      @id @default(cuid())
-  leaseId   String
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  leaseId   String      @db.ObjectId
   role      MessageRole
-  content   String      @db.Text
+  content   String
   createdAt DateTime    @default(now())
 
-  lease Lease @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  lease Lease @relation(fields: [leaseId], references: [id])
 
   @@map("chat_messages")
 }
@@ -210,14 +210,14 @@ enum MessageRole {
 
 // ─── REPORTS ──────────────────────────────────────────────────
 model Report {
-  id        String     @id @default(cuid())
-  leaseId   String
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  leaseId   String     @db.ObjectId
   type      ReportType @default(PDF)
   fileKey   String?
   fileUrl   String?
   createdAt DateTime   @default(now())
 
-  lease Lease @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  lease Lease @relation(fields: [leaseId], references: [id])
 
   @@map("reports")
 }
@@ -229,8 +229,8 @@ enum ReportType {
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
   title     String
   body      String
   icon      String?
@@ -238,31 +238,31 @@ model Notification {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
 
   @@map("notifications")
 }
 
 // ─── API KEYS (Business plan) ─────────────────────────────────
 model ApiKey {
-  id        String   @id @default(cuid())
-  userId    String
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
   name      String
   keyHash   String   @unique
   lastUsed  DateTime?
   expiresAt DateTime?
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
 
   @@map("api_keys")
 }
 
 // ─── TEAMS (Business plan) ────────────────────────────────────
 model Team {
-  id        String       @id @default(cuid())
+  id        String       @id @default(auto()) @map("_id") @db.ObjectId
   name      String
-  ownerId   String
+  ownerId   String       @db.ObjectId
   createdAt DateTime     @default(now())
   members   TeamMember[]
 
@@ -270,14 +270,14 @@ model Team {
 }
 
 model TeamMember {
-  id        String   @id @default(cuid())
-  teamId    String
-  userId    String
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  teamId    String   @db.ObjectId
+  userId    String   @db.ObjectId
   role      TeamRole @default(MEMBER)
   createdAt DateTime @default(now())
 
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@unique([teamId, userId])
   @@map("team_members")

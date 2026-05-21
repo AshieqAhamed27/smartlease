@@ -34,11 +34,12 @@ async function main() {
   console.log(`✅ Demo user: ${user.email} / password123`)
 
   // Create sample analyzed lease
-  const lease = await prisma.lease.upsert({
-    where: { id: 'demo-lease-001' },
-    update: {},
-    create: {
-      id: 'demo-lease-001',
+  const existingLease = await prisma.lease.findFirst({
+    where: { userId: user.id, name: 'Koramangala 2BHK' },
+  })
+
+  const lease = existingLease || await prisma.lease.create({
+    data: {
       userId: user.id,
       name: 'Koramangala 2BHK',
       address: '12 Residency Rd, Koramangala',
@@ -102,8 +103,11 @@ async function main() {
   })
 
   // Seed demo notifications
+  await prisma.notification.deleteMany({
+    where: { userId: user.id, link: `/dashboard/leases/${lease.id}` },
+  })
+
   await prisma.notification.createMany({
-    skipDuplicates: true,
     data: [
       {
         userId: user.id,

@@ -1,11 +1,16 @@
 import { z } from 'zod'
 
+if (!process.env.MONGO_URI && process.env.DATABASE_URL?.startsWith('mongodb')) {
+  process.env.MONGO_URI = process.env.DATABASE_URL
+}
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(4000),
 
   // Database
-  DATABASE_URL: z.string().min(1),
+  MONGO_URI: z.string().startsWith('mongodb'),
+  DATABASE_URL: z.string().optional(),
 
   // Redis
   REDIS_URL: z.string().min(1),

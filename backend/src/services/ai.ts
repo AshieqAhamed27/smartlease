@@ -2,7 +2,19 @@ import Anthropic from '@anthropic-ai/sdk'
 import { env } from '../config/env'
 import { logger } from '../config/logger'
 
-const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
+let anthropic: Anthropic | null = null
+
+function getAnthropic() {
+  if (!env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY is not configured. Add it in Render before using AI analysis.')
+  }
+
+  if (!anthropic) {
+    anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
+  }
+
+  return anthropic
+}
 
 export interface LeaseIssue {
   severity: 'CRITICAL' | 'WARNING' | 'GOOD'
@@ -98,7 +110,7 @@ ${leaseText.slice(0, 15000)}
 export async function analyzeLease(leaseText: string): Promise<LeaseAnalysisResult> {
   logger.info(`Starting AI lease analysis, text length: ${leaseText.length}`)
 
-  const message = await anthropic.messages.create({
+  const message = await getAnthropic().messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4096,
     system: SYSTEM_PROMPT,
@@ -185,7 +197,7 @@ GUIDELINES:
 - Never give legal advice disclaimers — be helpful and direct
 - Do not use markdown formatting`
 
-  const response = await anthropic.messages.create({
+  const response = await getAnthropic().messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 500,
     system: systemPrompt,
@@ -223,7 +235,7 @@ Requirements:
 - Keep it under 300 words
 - Plain text only, no markdown`
 
-  const response = await anthropic.messages.create({
+  const response = await getAnthropic().messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 600,
     messages: [{ role: 'user', content: prompt }],
@@ -251,7 +263,7 @@ export async function generateTemplate(
 
   const prompt = templates[type] || `Write a tenant rights letter for: ${type}. Context: ${JSON.stringify(context)}. Professional tone, plain text.`
 
-  const response = await anthropic.messages.create({
+  const response = await getAnthropic().messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 500,
     messages: [{ role: 'user', content: prompt }],

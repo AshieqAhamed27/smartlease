@@ -4,6 +4,10 @@ if (!process.env.MONGO_URI && process.env.DATABASE_URL?.startsWith('mongodb')) {
   process.env.MONGO_URI = process.env.DATABASE_URL
 }
 
+if (!process.env.JWT_REFRESH_SECRET && process.env.JWT_SECRET) {
+  process.env.JWT_REFRESH_SECRET = process.env.JWT_SECRET
+}
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(4000),
@@ -21,8 +25,8 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 
-  // Anthropic
-  ANTHROPIC_API_KEY: z.string().startsWith('sk-ant-'),
+  // Anthropic. Optional at boot so deploys can start; AI features require it at runtime.
+  ANTHROPIC_API_KEY: z.string().startsWith('sk-ant-').optional(),
 
   // Razorpay
   RAZORPAY_KEY_ID: z.string().startsWith('rzp_'),

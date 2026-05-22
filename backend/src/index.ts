@@ -9,7 +9,7 @@ import { rateLimit } from 'express-rate-limit'
 import { env } from './config/env'
 import { logger } from './config/logger'
 import { prisma } from './config/database'
-import { redis } from './config/redis'
+import { hasRedis, redis } from './config/redis'
 import { errorHandler, notFound } from './middleware/errorHandler'
 
 // Routes
@@ -73,12 +73,15 @@ app.use('/api/', limiter)
 app.get('/health', async (req, res) => {
   try {
     await prisma.$runCommandRaw({ ping: 1 })
-    await redis.ping()
+    if (redis) await redis.ping()
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
       version: process.env.npm_package_version,
-      services: { database: 'ok', redis: 'ok' },
+      services: {
+        database: 'ok',
+        queue: hasRedis ? 'redis' : 'inline',
+      },
     })
   } catch (err) {
     res.status(503).json({ status: 'error', message: 'Service unavailable' })
@@ -105,8 +108,12 @@ async function bootstrap() {
     await prisma.$connect()
     logger.info('✅ Database connected')
 
-    await redis.ping()
-    logger.info('✅ Redis connected')
+    if (redis) {
+      await redis.ping()
+      logger.info('✅ Redis connected')
+    } else {
+      logger.info('Queue mode: inline analysis without Redis')
+    }
 
     const PORT = env.PORT
     app.listen(PORT, () => {
@@ -124,7 +131,7 @@ async function bootstrap() {
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully...')
   await prisma.$disconnect()
-  redis.quit()
+  redis?.quit()
   process.exit(0)
 })
 

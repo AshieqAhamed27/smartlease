@@ -12,8 +12,8 @@ const envSchema = z.object({
   MONGO_URI: z.string().startsWith('mongodb'),
   DATABASE_URL: z.string().optional(),
 
-  // Redis
-  REDIS_URL: z.string().min(1),
+  // Redis is optional. When omitted, lease analysis runs in the API process.
+  REDIS_URL: z.string().optional(),
 
   // Auth
   JWT_SECRET: z.string().min(32),

@@ -4,7 +4,6 @@ import bcrypt from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
 
 import { prisma } from '../config/database'
-import { redis } from '../config/redis'
 import { env } from '../config/env'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../services/jwt'
 import { sendVerificationEmail, sendPasswordResetEmail } from '../services/email'

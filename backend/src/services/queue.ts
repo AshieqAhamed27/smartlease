@@ -9,20 +9,34 @@ import { createNotification } from './notifications'
 import { sendAnalysisCompleteEmail } from './email'
 
 // ─── QUEUES ──────────────────────────────────────────────────
-export const leaseAnalysisQueue = new Queue('lease-analysis', {
-  connection: redis,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 5000,
-    },
-    removeOnComplete: { count: 100 },
-    removeOnFail: { count: 50 },
-  }
-})
+type LeaseAnalysisData = { leaseId: string; userId: string }
+type LeaseAnalysisJob = Pick<Job<LeaseAnalysisData>, 'data' | 'updateProgress'>
 
-export async function enqueueLeaseAnalysis(data: { leaseId: string; userId: string }) {
+export const leaseAnalysisQueue = redis ? new Queue<LeaseAnalysisData>('lease-analysis', {
+    connection: redis,
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
+      removeOnComplete: { count: 100 },
+      removeOnFail: { count: 50 },
+    }
+  }) : null
+
+export async function enqueueLeaseAnalysis(data: LeaseAnalysisData) {
+  if (!leaseAnalysisQueue) {
+    setImmediate(() => {
+      processLeaseAnalysis({
+        data,
+        updateProgress: async () => {},
+      }).catch((err) => logger.error(`Inline lease analysis failed: ${data.leaseId}`, err))
+    })
+    logger.info(`Started inline lease analysis: ${data.leaseId}`)
+    return
+  }
+
   await leaseAnalysisQueue.add('analyze', data, {
     jobId: `lease-${data.leaseId}`,
   })
@@ -33,7 +47,12 @@ export async function enqueueLeaseAnalysis(data: { leaseId: string; userId: stri
 let worker: Worker | null = null
 
 export function startWorker() {
-  worker = new Worker('lease-analysis', processLeaseAnalysis, {
+  if (!redis) {
+    logger.info('Redis is not configured; standalone queue worker is disabled')
+    return null
+  }
+
+  worker = new Worker<LeaseAnalysisData>('lease-analysis', processLeaseAnalysis, {
     connection: redis,
     concurrency: 3, // Process 3 leases simultaneously
   })
@@ -55,7 +74,7 @@ export function startWorker() {
 }
 
 // ─── JOB PROCESSOR ───────────────────────────────────────────
-async function processLeaseAnalysis(job: Job<{ leaseId: string; userId: string }>) {
+async function processLeaseAnalysis(job: LeaseAnalysisJob) {
   const { leaseId, userId } = job.data
 
   logger.info(`Processing lease analysis: ${leaseId}`)

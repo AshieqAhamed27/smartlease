@@ -36,7 +36,7 @@ smartlease/
 ### Backend
 - Node.js + Express + TypeScript
 - Prisma ORM + MongoDB
-- Redis (sessions, rate limiting, queue)
+- Optional Redis/BullMQ queue; without Redis, analysis runs in the API process
 - BullMQ (background jobs — PDF processing)
 - JWT + httpOnly cookies (auth)
 - Razorpay (subscriptions)
@@ -50,7 +50,7 @@ smartlease/
 - Railway / Render (backend deployment)
 - Vercel (frontend deployment)
 - MongoDB Atlas
-- Redis (Upstash)
+- Optional Redis (Upstash) for a separate background queue
 - Cloudinary or Cloudflare R2 (file storage)
 
 ## Revenue Model

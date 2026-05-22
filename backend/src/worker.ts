@@ -9,6 +9,12 @@ async function bootstrap() {
     await prisma.$connect()
     logger.info('✅ Worker: Database connected')
 
+    if (!redis) {
+      logger.info('Redis is not configured; standalone worker is not needed')
+      await prisma.$disconnect()
+      return
+    }
+
     await redis.ping()
     logger.info('✅ Worker: Redis connected')
 
@@ -19,7 +25,7 @@ async function bootstrap() {
       logger.info('SIGTERM received, closing worker...')
       await worker?.close()
       await prisma.$disconnect()
-      redis.quit()
+      redis?.quit()
       process.exit(0)
     })
   } catch (err) {

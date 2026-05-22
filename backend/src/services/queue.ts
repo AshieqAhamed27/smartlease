@@ -37,10 +37,20 @@ export async function enqueueLeaseAnalysis(data: LeaseAnalysisData) {
     return
   }
 
-  await leaseAnalysisQueue.add('analyze', data, {
-    jobId: `lease-${data.leaseId}`,
-  })
-  logger.info(`Enqueued lease analysis: ${data.leaseId}`)
+  try {
+    await leaseAnalysisQueue.add('analyze', data, {
+      jobId: `lease-${data.leaseId}`,
+    })
+    logger.info(`Enqueued lease analysis: ${data.leaseId}`)
+  } catch (err) {
+    logger.error('Redis queue unavailable; falling back to inline lease analysis', err)
+    setImmediate(() => {
+      processLeaseAnalysis({
+        data,
+        updateProgress: async () => {},
+      }).catch((error) => logger.error(`Inline lease analysis failed: ${data.leaseId}`, error))
+    })
+  }
 }
 
 // ─── WORKER ──────────────────────────────────────────────────

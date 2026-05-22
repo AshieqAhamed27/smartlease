@@ -13,6 +13,21 @@ import { AppError } from '../middleware/errorHandler'
 
 const router = Router()
 
+const refreshCookieOptions = {
+  httpOnly: true,
+  secure: env.NODE_ENV === 'production',
+  sameSite: env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: '/api/auth',
+}
+
+const clearRefreshCookieOptions = {
+  httpOnly: refreshCookieOptions.httpOnly,
+  secure: refreshCookieOptions.secure,
+  sameSite: refreshCookieOptions.sameSite,
+  path: refreshCookieOptions.path,
+}
+
 // ─── REGISTER ────────────────────────────────────────────────
 router.post('/register',
   [
@@ -83,13 +98,7 @@ router.post('/register',
       }
     })
 
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/api/auth',
-    })
+    res.cookie('refresh_token', refreshToken, refreshCookieOptions)
 
     return res.status(201).json({
       user: {
@@ -141,13 +150,7 @@ router.post('/login',
       }
     })
 
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/api/auth',
-    })
+    res.cookie('refresh_token', refreshToken, refreshCookieOptions)
 
     return res.json({
       user: {
@@ -212,7 +215,7 @@ router.post('/logout', authenticate, async (req: Request, res: Response) => {
     await prisma.session.deleteMany({ where: { refreshToken } })
   }
 
-  res.clearCookie('refresh_token', { path: '/api/auth' })
+  res.clearCookie('refresh_token', clearRefreshCookieOptions)
   return res.json({ message: 'Logged out successfully' })
 })
 

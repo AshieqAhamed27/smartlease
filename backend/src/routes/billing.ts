@@ -40,8 +40,8 @@ function unixToDate(value?: number | null) {
   return value ? new Date(Number(value) * 1000) : undefined
 }
 
-function getFallbackPeriodEnd() {
-  const end = new Date()
+function getFallbackPeriodEnd(startedAtUnix?: number | null) {
+  const end = unixToDate(startedAtUnix) || new Date()
   end.setMonth(end.getMonth() + 1)
   return end
 }
@@ -299,6 +299,9 @@ export async function handleRazorpayWebhook(event: RazorpayWebhookEvent) {
   if (event.event === 'payment.captured' || event.event === 'order.paid') {
     const notes = event.payload?.order?.entity?.notes || {}
     const paymentId = event.payload?.payment?.entity?.id
+    const periodStartedAt = event.payload?.payment?.entity?.created_at ||
+      event.payload?.order?.entity?.created_at ||
+      event.created_at
     const plan = notes.plan
     const userId = notes.userId
     if (userId && (plan === 'PRO' || plan === 'BUSINESS')) {
@@ -309,8 +312,8 @@ export async function handleRazorpayWebhook(event: RazorpayWebhookEvent) {
           status: 'ACTIVE',
           analysesLimit: PLAN_LIMITS[plan],
           razorpayPaymentId: paymentId,
-          currentPeriodStart: new Date(),
-          currentPeriodEnd: getFallbackPeriodEnd(),
+          currentPeriodStart: unixToDate(periodStartedAt) || new Date(),
+          currentPeriodEnd: getFallbackPeriodEnd(periodStartedAt),
         }
       })
     }

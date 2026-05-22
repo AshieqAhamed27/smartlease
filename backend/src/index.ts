@@ -11,6 +11,7 @@ import { logger } from './config/logger'
 import { prisma } from './config/database'
 import { hasRedis, redis } from './config/redis'
 import { errorHandler, notFound } from './middleware/errorHandler'
+import { wrapAsyncRouter } from './middleware/wrapAsyncRouter'
 
 // Routes
 import authRoutes from './routes/auth'
@@ -36,14 +37,14 @@ app.use(helmet({
 
 // ─── CORS ────────────────────────────────────────────────────
 app.use(cors({
-  origin: env.CORS_ORIGINS.split(','),
+  origin: env.CORS_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
 }))
 
 // Razorpay webhook routes need the raw body before JSON parsing.
-app.use('/api/webhooks', webhookRoutes)
+app.use('/api/webhooks', wrapAsyncRouter(webhookRoutes))
 
 // ─── BODY PARSING ────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }))
@@ -73,7 +74,6 @@ app.use('/api/', limiter)
 app.get('/health', async (req, res) => {
   try {
     await prisma.$runCommandRaw({ ping: 1 })
-    if (redis) await redis.ping()
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -89,14 +89,14 @@ app.get('/health', async (req, res) => {
 })
 
 // ─── API ROUTES ──────────────────────────────────────────────
-app.use('/api/auth', authRoutes)
-app.use('/api/users', userRoutes)
-app.use('/api/leases', leaseRoutes)
-app.use('/api/analysis', analysisRoutes)
-app.use('/api/chat', chatRoutes)
-app.use('/api/billing', billingRoutes)
-app.use('/api/notifications', notificationRoutes)
-app.use('/api/templates', templateRoutes)
+app.use('/api/auth', wrapAsyncRouter(authRoutes))
+app.use('/api/users', wrapAsyncRouter(userRoutes))
+app.use('/api/leases', wrapAsyncRouter(leaseRoutes))
+app.use('/api/analysis', wrapAsyncRouter(analysisRoutes))
+app.use('/api/chat', wrapAsyncRouter(chatRoutes))
+app.use('/api/billing', wrapAsyncRouter(billingRoutes))
+app.use('/api/notifications', wrapAsyncRouter(notificationRoutes))
+app.use('/api/templates', wrapAsyncRouter(templateRoutes))
 
 // ─── ERROR HANDLING ──────────────────────────────────────────
 app.use(notFound)
@@ -104,27 +104,17 @@ app.use(errorHandler)
 
 // ─── SERVER START ─────────────────────────────────────────────
 async function bootstrap() {
-  try {
-    await prisma.$connect()
-    logger.info('✅ Database connected')
+  const PORT = env.PORT
+  app.listen(PORT, () => {
+    logger.info(`🚀 SmartLease API running on port ${PORT}`)
+    logger.info(`   Environment: ${env.NODE_ENV}`)
+    logger.info(`   Docs: http://localhost:${PORT}/health`)
+    logger.info(redis ? 'Queue mode: Redis configured' : 'Queue mode: inline analysis without Redis')
+  })
 
-    if (redis) {
-      await redis.ping()
-      logger.info('✅ Redis connected')
-    } else {
-      logger.info('Queue mode: inline analysis without Redis')
-    }
-
-    const PORT = env.PORT
-    app.listen(PORT, () => {
-      logger.info(`🚀 SmartLease API running on port ${PORT}`)
-      logger.info(`   Environment: ${env.NODE_ENV}`)
-      logger.info(`   Docs: http://localhost:${PORT}/health`)
-    })
-  } catch (err) {
-    logger.error('❌ Failed to start server:', err)
-    process.exit(1)
-  }
+  prisma.$connect()
+    .then(() => logger.info('✅ Database connected'))
+    .catch((err) => logger.error('Database connection check failed:', err))
 }
 
 // Graceful shutdown

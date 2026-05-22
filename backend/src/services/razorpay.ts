@@ -25,14 +25,16 @@ export interface RazorpayPayment {
   status?: string
   amount?: number
   currency?: string
+  created_at?: number
 }
 
 export interface RazorpayWebhookEvent {
   event?: string
+  created_at?: number
   payload?: {
     subscription?: { entity?: RazorpaySubscription }
     payment?: { entity?: RazorpayPayment }
-    order?: { entity?: { notes?: Record<string, string> } }
+    order?: { entity?: { notes?: Record<string, string>; created_at?: number } }
   }
 }
 

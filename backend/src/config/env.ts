@@ -18,6 +18,7 @@ const envSchema = z.object({
 
   // Redis is optional. When omitted, lease analysis runs in the API process.
   REDIS_URL: z.string().optional(),
+  ENABLE_REDIS_QUEUE: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
 
   // Auth
   JWT_SECRET: z.string().min(32),
@@ -66,6 +67,14 @@ const envSchema = z.object({
   RAZORPAY_PRO_PLAN_ID: data.RAZORPAY_PRO_PLAN_ID || data.RAZORPAY_MONTHLY_PLAN_ID || '',
   RAZORPAY_BUSINESS_PLAN_ID: data.RAZORPAY_BUSINESS_PLAN_ID || data.RAZORPAY_YEARLY_PLAN_ID || '',
 })).superRefine((data, ctx) => {
+  if (data.NODE_ENV === 'production' && data.PAYMENT_SIMULATION) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['PAYMENT_SIMULATION'],
+      message: 'PAYMENT_SIMULATION must be false in production',
+    })
+  }
+
   if (!data.RAZORPAY_PRO_PLAN_ID) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,

@@ -118,7 +118,8 @@ router.post('/upload',
       })
     }
 
-    const fileKey = `leases/${userId}/${uuidv4()}-${req.file.originalname}`
+    const extension = req.file.originalname.match(/\.[a-z0-9]+$/i)?.[0] || '.pdf'
+    const fileKey = `leases/${userId}/${uuidv4()}${extension.toLowerCase()}`
 
     // Upload to S3/R2
     await uploadFile({

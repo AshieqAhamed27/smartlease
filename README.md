@@ -41,7 +41,7 @@ smartlease/
 - JWT + httpOnly cookies (auth)
 - Razorpay (subscriptions)
 - Anthropic Claude API (AI analysis)
-- AWS S3 / Cloudflare R2 (file storage)
+- Cloudinary or AWS S3 / Cloudflare R2 (file storage)
 - Resend (transactional email)
 - pdf-parse + pdfjs-dist (PDF extraction)
 
@@ -51,7 +51,7 @@ smartlease/
 - Vercel (frontend deployment)
 - MongoDB Atlas
 - Redis (Upstash)
-- Cloudflare R2 (file storage)
+- Cloudinary or Cloudflare R2 (file storage)
 
 ## Revenue Model
 - Free: 2 analyses/month

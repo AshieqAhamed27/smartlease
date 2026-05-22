@@ -6,7 +6,7 @@
 - **Background Worker** → Render Worker (~$7/mo)
 - **MongoDB** → MongoDB Atlas
 - **Redis** → Render Redis (~$10/mo) or Upstash (free tier)
-- **File Storage** → Cloudflare R2 (free 10GB/mo) or AWS S3
+- **File Storage** → Cloudinary from InvoicePro or Cloudflare R2/AWS S3
 - **Email** → Resend (free 3,000/mo)
 - **Payments** → Razorpay
 
@@ -30,12 +30,13 @@
    - Events: `subscription.authenticated`, `subscription.activated`, `subscription.charged`, `subscription.cancelled`, `subscription.completed`, `subscription.expired`, `payment.captured`, `order.paid`
    - Copy signing secret as `RAZORPAY_WEBHOOK_SECRET`
 
-### 1c. Cloudflare R2 (file storage)
-1. Go to https://dash.cloudflare.com → R2
-2. Create bucket: `smartlease-uploads`
-3. Settings → Public Access → Enable
-4. API Tokens → Create token with R2 permissions
-5. Copy endpoint, access key, secret key
+### 1c. File storage
+Use the same Cloudinary account from InvoicePro:
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+
+Cloudflare R2 / AWS S3 is also supported if you prefer the `STORAGE_*` variables from `backend/.env.example`.
 
 ### 1d. Resend (email)
 1. Go to https://resend.com → Create account
@@ -175,11 +176,9 @@ curl https://smartlease-api.onrender.com/health
 | `RAZORPAY_PRO_PLAN_ID` | Pro plan subscription ID | ✅ |
 | `RAZORPAY_BUSINESS_PLAN_ID` | Business plan subscription ID | ✅ |
 | `PAYMENT_SIMULATION` | Local checkout simulation flag | optional |
-| `STORAGE_BUCKET` | R2/S3 bucket name | ✅ |
-| `STORAGE_ENDPOINT` | R2/S3 endpoint URL | ✅ |
-| `STORAGE_ACCESS_KEY` | R2/S3 access key | ✅ |
-| `STORAGE_SECRET_KEY` | R2/S3 secret key | ✅ |
-| `STORAGE_PUBLIC_URL` | Public CDN URL | ✅ |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name | ✅ |
+| `CLOUDINARY_API_KEY` | Cloudinary API key | ✅ |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret | ✅ |
 | `RESEND_API_KEY` | Resend email key | ✅ |
 | `APP_URL` | Vercel frontend URL | ✅ |
 | `API_URL` | Render backend URL | ✅ |
@@ -201,7 +200,7 @@ curl https://smartlease-api.onrender.com/health
 | Render Worker | Starter | $7 |
 | MongoDB Atlas | Free/shared cluster or paid tier | $0+ |
 | Render Redis | Starter | $10 |
-| Cloudflare R2 | Free (10GB) | $0 |
+| Cloudinary | Existing InvoicePro account | $0+ |
 | Resend | Free (3k/mo) | $0 |
 | **Total** | | **~$31/mo** |
 

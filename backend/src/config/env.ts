@@ -34,13 +34,16 @@ const envSchema = z.object({
   RAZORPAY_YEARLY_PLAN_ID: z.string().optional(),
   PAYMENT_SIMULATION: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
 
-  // Storage
-  STORAGE_BUCKET: z.string(),
+  // Storage: Cloudinary is supported for InvoicePro compatibility; S3/R2 remains optional.
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
+  STORAGE_BUCKET: z.string().optional(),
   STORAGE_REGION: z.string().default('auto'),
-  STORAGE_ENDPOINT: z.string().url(),
-  STORAGE_ACCESS_KEY: z.string(),
-  STORAGE_SECRET_KEY: z.string(),
-  STORAGE_PUBLIC_URL: z.string().url(),
+  STORAGE_ENDPOINT: z.string().url().optional(),
+  STORAGE_ACCESS_KEY: z.string().optional(),
+  STORAGE_SECRET_KEY: z.string().optional(),
+  STORAGE_PUBLIC_URL: z.string().url().optional(),
 
   // Email
   RESEND_API_KEY: z.string().startsWith('re_'),
@@ -71,6 +74,22 @@ const envSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ['RAZORPAY_BUSINESS_PLAN_ID'],
       message: 'RAZORPAY_BUSINESS_PLAN_ID or RAZORPAY_YEARLY_PLAN_ID is required',
+    })
+  }
+
+  const hasCloudinary = Boolean(
+    data.CLOUDINARY_CLOUD_NAME && data.CLOUDINARY_API_KEY && data.CLOUDINARY_API_SECRET
+  )
+  const hasS3 = Boolean(
+    data.STORAGE_BUCKET && data.STORAGE_ENDPOINT && data.STORAGE_ACCESS_KEY &&
+    data.STORAGE_SECRET_KEY && data.STORAGE_PUBLIC_URL
+  )
+
+  if (!hasCloudinary && !hasS3) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['CLOUDINARY_CLOUD_NAME'],
+      message: 'Provide Cloudinary credentials or all STORAGE_* S3/R2 variables',
     })
   }
 })

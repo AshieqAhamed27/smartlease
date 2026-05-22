@@ -38,17 +38,11 @@ services:
         sync: false
       - key: PAYMENT_SIMULATION
         value: "false"
-      - key: STORAGE_BUCKET
+      - key: CLOUDINARY_CLOUD_NAME
         sync: false
-      - key: STORAGE_REGION
-        value: auto
-      - key: STORAGE_ENDPOINT
+      - key: CLOUDINARY_API_KEY
         sync: false
-      - key: STORAGE_ACCESS_KEY
-        sync: false
-      - key: STORAGE_SECRET_KEY
-        sync: false
-      - key: STORAGE_PUBLIC_URL
+      - key: CLOUDINARY_API_SECRET
         sync: false
       - key: RESEND_API_KEY
         sync: false
@@ -83,15 +77,39 @@ services:
           name: smartlease-redis
           type: redis
           property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
       - key: ANTHROPIC_API_KEY
         sync: false
-      - key: STORAGE_BUCKET
+      - key: RAZORPAY_KEY_ID
         sync: false
-      - key: STORAGE_ENDPOINT
+      - key: RAZORPAY_KEY_SECRET
         sync: false
-      - key: STORAGE_ACCESS_KEY
+      - key: RAZORPAY_WEBHOOK_SECRET
         sync: false
-      - key: STORAGE_SECRET_KEY
+      - key: RAZORPAY_PRO_PLAN_ID
+        sync: false
+      - key: RAZORPAY_BUSINESS_PLAN_ID
+        sync: false
+      - key: PAYMENT_SIMULATION
+        value: "false"
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: SmartLease <hello@smartlease.in>
+      - key: APP_URL
+        sync: false
+      - key: API_URL
+        sync: false
+      - key: CORS_ORIGINS
         sync: false
 
   - type: redis
